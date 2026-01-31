@@ -104,7 +104,7 @@ def main():
     
 driver = init_driver()
     
-    try:
+try:
         print(f"[{time.strftime('%H:%M:%S')}] Mengambil data terbaru...")
         driver.get(URL)
         
@@ -141,38 +141,7 @@ driver = init_driver()
                     f.write(driver.page_source)
                 print("📄 HTML error disimpan sebagai 'error_page.html'")
                 
-                raise e2 # Lempar error agar GitHub Action tahu ini gagal
-        
-        # Ambil teks dari container
-        container_text = container.text
-        print(f"Panjang teks container: {len(container_text)} karakter")
-        
-        # Debug: tampilkan 100 karakter pertama
-        print(f"Preview teks: {container_text[:200]}...")
-        
-        # Ekstrak angka dari teks container
-        raw_numbers = extract_numbers_from_container(container_text)
-        print(f"✓ Ditemukan {len(raw_numbers)} angka dalam container")
-        
-        # Tampilkan 20 angka pertama untuk debugging
-        print(f"20 angka pertama: {raw_numbers[:20]}")
-        
-        # Ambil juga elemen individual untuk mendapatkan warna
-        individual_elements = driver.find_elements(By.CSS_SELECTOR, "div.roulette-number")
-        print(f"✓ Ditemukan {len(individual_elements)} elemen individual")
-        
-        # Parsing data dari elemen individual untuk mendapatkan warna
-        individual_data = []
-        for el in individual_elements[:min(len(raw_numbers), len(individual_elements))]:
-            text = el.text.strip()
-            if text.isdigit():
-                classes = el.get_attribute('class')
-                individual_data.append({
-                    'number': text,
-                    'classes': classes
-                })
-        
-        print(f"✓ Parsed {len(individual_data)} elemen individual")
+                raise e2 # Lempar error agar GitHub Action tahu ini gagal  
         
         # Gabungkan data: angka dari container dengan warna dari elemen individual
         current_batch = []
