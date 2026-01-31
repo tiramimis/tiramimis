@@ -3,12 +3,11 @@ import csv
 import os
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.chrome.service import Service
+from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from bs4 import BeautifulSoup
-from selenium.webdriver.chrome.service import Service
-from webdriver_manager.chrome import ChromeDriverManager
 
 # --- KONFIGURASI ---
 URL = "https://gamblingcounting.com/pragmatic-auto-roulette"
@@ -39,18 +38,30 @@ def get_roulette_stats(number):
     return stats
 
 def init_driver():
-    """Menyiapkan browser headless dengan WebDriver Manager"""
+    """Menyiapkan browser headless dengan mode Stealth"""
     opts = Options()
-    opts.add_argument("--headless")
+    # PENTING: Gunakan --headless=new (fitur baru Chrome yang lebih sulit dideteksi)
+    opts.add_argument("--headless=new") 
     opts.add_argument("--no-sandbox")
     opts.add_argument("--disable-dev-shm-usage")
-    # User agent sangat penting untuk menghindari deteksi bot sederhana
-    opts.add_argument("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36")
     opts.add_argument("--window-size=1920,1080")
+    opts.add_argument("--disable-blink-features=AutomationControlled")
     
-    # MENGGUNAKAN WEBDRIVER MANAGER AGAR KOMPATIBEL DI GITHUB ACTIONS
+    # User Agent biasa (seolah-olah Windows Desktop)
+    opts.add_argument("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
+    
+    # Sembunyikan fakta bahwa ini dikontrol otomatis
+    opts.add_experimental_option("excludeSwitches", ["enable-automation"])
+    opts.add_experimental_option('useAutomationExtension', False)
+
     service = Service(ChromeDriverManager().install())
     driver = webdriver.Chrome(service=service, options=opts)
+    
+    # Script tambahan untuk memalsukan properti navigator
+    driver.execute_cdp_cmd('Network.setUserAgentOverride', {
+        "userAgent": 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+    })
+    
     return driver
 
 def get_last_recorded_data(filepath, limit=10):
@@ -91,32 +102,46 @@ def main():
     print("Hanya mengambil data dari section 'History of rounds' (Last 200 spins)")
     print("Update manual - run script saat ada update baru di website\n")
     
-    driver = init_driver()
+driver = init_driver()
     
     try:
         print(f"[{time.strftime('%H:%M:%S')}] Mengambil data terbaru...")
-        print("Membuka website...")
-        
         driver.get(URL)
         
-        # Tunggu beberapa detik untuk memuat konten
-        time.sleep(5)
+        # Tunggu loading awal
+        time.sleep(10) 
         
         print("Mencari section 'History of rounds'...")
         
-        # Tunggu sampai elemen container muncul
         try:
-            container = WebDriverWait(driver, 15).until(
+            # Coba selector utama
+            container = WebDriverWait(driver, 20).until(
                 EC.presence_of_element_located((By.CSS_SELECTOR, "div.live-game-page__block__results"))
             )
             print("✓ Container ditemukan!")
+            
         except Exception as e:
-            print(f"✗ Container tidak ditemukan: {e}")
-            # Coba alternatif
-            container = WebDriverWait(driver, 15).until(
-                EC.presence_of_element_located((By.CLASS_NAME, "live-game-page__block__content"))
-            )
-            print("✓ Container alternatif ditemukan!")
+            print(f"✗ Gagal Selector 1. Mencoba Selector 2...")
+            try:
+                # Coba selector alternatif
+                container = WebDriverWait(driver, 20).until(
+                    EC.presence_of_element_located((By.CLASS_NAME, "live-game-page__block__content"))
+                )
+                print("✓ Container alternatif ditemukan!")
+            except Exception as e2:
+                # --- LOGIKA DEBUGGING JIKA GAGAL ---
+                print("✗ GAGAL TOTAL. Website mungkin memblokir atau layout berubah.")
+                
+                # Ambil Screenshot untuk dilihat di GitHub
+                driver.save_screenshot("error_screenshot.png")
+                print("📸 Screenshot error disimpan sebagai 'error_screenshot.png'")
+                
+                # Simpan HTML source code
+                with open("error_page.html", "w", encoding="utf-8") as f:
+                    f.write(driver.page_source)
+                print("📄 HTML error disimpan sebagai 'error_page.html'")
+                
+                raise e2 # Lempar error agar GitHub Action tahu ini gagal
         
         # Ambil teks dari container
         container_text = container.text
