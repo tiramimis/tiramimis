@@ -30,7 +30,7 @@ jobs:
 
     # Langkah 3: Jalankan Script
     - name: Run Scraper
-      run: python tescopy.py
+      run: python scraper.py
       
     # (Opsional) Langkah 4: Commit & Push jika ada perubahan CSV
     - name: Commit and Push
