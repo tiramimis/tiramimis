@@ -38,16 +38,22 @@ def get_roulette_stats(number):
 
 def init_driver():
     """Menyiapkan browser untuk GitHub Actions"""
+    from selenium import webdriver
+    from selenium.webdriver.chrome.service import Service
+    from selenium.webdriver.chrome.options import Options
+    
     opts = Options()
     opts.add_argument("--headless")
     opts.add_argument("--no-sandbox")
     opts.add_argument("--disable-dev-shm-usage")
     opts.add_argument("--disable-gpu")
     opts.add_argument("--window-size=1920,1080")
+    opts.add_argument("--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
     
     # Untuk GitHub Actions
-    opts.binary_location = "/usr/bin/chromium-browser"
-    driver = webdriver.Chrome(options=opts)
+    opts.binary_location = "/usr/bin/google-chrome-stable"
+    service = Service(executable_path="/usr/local/bin/chromedriver")
+    driver = webdriver.Chrome(service=service, options=opts)
     return driver
 
 def get_last_recorded_data(filepath, limit=10):
@@ -151,4 +157,5 @@ def main():
         print("Selesai")
 
 if __name__ == "__main__":
+
     main()
