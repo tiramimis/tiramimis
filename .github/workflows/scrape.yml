@@ -31,7 +31,7 @@ jobs:
           # pip install selenium beautifulsoup4 webdriver-manager
 
       - name: Run Scraper Script
-        run: python tes.py
+        run: python scraper.py
 
       - name: Check for changes
         id: git-check
